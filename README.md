@@ -1,5 +1,4 @@
-[README.md](https://github.com/user-attachments/files/35010300/README.md)
-
+[README_2.md](https://github.com/user-attachments/files/35011419/README_2.md)
 # Exynos7420 One UI 7 Face HAL（Galaxy S6 系列 One UI 7 移植版人臉解鎖）
 
 [English](README.en.md) | [繁體中文](README.md)
@@ -13,7 +12,7 @@
 > - **請先備份 vendor 分割區**（教學裡有指令）。一切風險自負，作者不提供任何保證。
 > - 本專案與 Samsung 無關。
 
-目前版本：**v0.16**（分享版：連續失敗鎖定預設關閉）
+目前版本：**v1.0**（分享版，內部 HAL 編號 v0.16：連續失敗鎖定預設關閉）
 
 ---
 
@@ -24,7 +23,7 @@
 | 機型 | SoC | 系統 | 狀態 | 回報者 | 備註 |
 |---|---|---|---|---|---|
 | Galaxy S6 edge（SM-G9250） | Exynos 7420 | 移植 One UI 7（Eylem ROM，Android 15） | ✅ 可用 | 作者 | 開發機，註冊、解鎖、預覽、鎖定提示皆正常 |
-| Galaxy Note 5 | Exynos 7420 | 同上 ROM | ✅ 可用 | 作者朋友 | 以分享版 v0.16 安裝成功 |
+| Galaxy Note 5 | Exynos 7420 | 同上 ROM | ✅ 可用 | 作者朋友 | 以分享版 v1.0 安裝成功 |
 | Galaxy S6 / S6 edge+ 其他型號 | Exynos 7420 | 同上 ROM | ❓ 未測 | — | 預期可用，歡迎回報 |
 | Galaxy S7 / S7 edge / Note 7 FE（Exynos 8890/8895） | Exynos 8xxx | 移植 One UI 7 | ❓ 未測 | — | 前鏡頭方向、`VENDOR` 分割區名稱可能不同 |
 | 其他第三方 One UI 7 移植 | — | Android 15 | ❓ 未測 | — | 先跑第 5 節的相容性檢查 |
@@ -41,7 +40,7 @@
 設定 / 鎖屏 (Samsung keyguard、SemFaceService)
         │  AIDL (android.hardware.biometrics.face.IFace v4)
         ▼
- face-service.g9250  ←  本專案（原生 C++，跑在 /system_ext）
+ face-service.facehal  ←  本專案（原生 C++，跑在 /system_ext）
    ├─ Samsung 擴充層：ISehFace / ISehSession（Samsung 鎖屏走這條）
    ├─ 前鏡頭：NDK Camera2 + AImageReader（YUV_420_888 640x480）
    ├─ 偵測：YuNet（5 點特徵點）
@@ -58,10 +57,10 @@
 
 | 檔案 | 位置 | 方式 |
 |---|---|---|
-| HAL 執行檔 | `/system_ext/bin/hw/android.hardware.biometrics.face-service.g9250` | Magisk 模組（systemless 疊加） |
+| HAL 執行檔 | `/system_ext/bin/hw/android.hardware.biometrics.face-service.facehal` | Magisk 模組（systemless 疊加） |
 | 4 個模型檔 | `/system_ext/etc/facehal/` | 同上 |
-| 啟動腳本 `face_g9250.rc` | `/vendor/etc/init/` | **寫入 vendor（開機最早期就要讀）** |
-| HAL 宣告 `face_g9250.xml` | `/vendor/etc/vintf/manifest/` | **寫入 vendor** |
+| 啟動腳本 `face_facehal.rc` | `/vendor/etc/init/` | **寫入 vendor（開機最早期就要讀）** |
+| HAL 宣告 `face_facehal.xml` | `/vendor/etc/vintf/manifest/` | **寫入 vendor** |
 | 註冊的臉特徵、設定檔 | `/data/vendor/face/` | 手機本機，不會被打包分享 |
 
 為什麼不能只靠 Magisk 模組：`rc` 與 VINTF manifest 在 Magisk 掛載之前就會被系統讀取，所以這兩個小檔必須真的寫進 `/vendor`。
@@ -73,15 +72,16 @@
 | 元件 | 用途 | 授權 | 來源 |
 |---|---|---|---|
 | [ncnn](https://github.com/Tencent/ncnn)（Tencent） | 神經網路推論（靜態連結，無 OpenMP） | BSD 3-Clause | 自行以 NDK r27c 編譯 |
-| [YuNet](https://github.com/ShiqiYu/libfacedetection)（`yunet_2023mar`） | 人臉偵測 + 5 點特徵點 | MIT | 轉換成 ncnn 格式 |
+| [YuNet](https://github.com/ShiqiYu/libfacedetection)（`yunet_2023mar`） | 人臉偵測 + 5 點特徵點 | MIT（OpenCV Zoo）／BSD 3-Clause（libfacedetection），以來源專案為準 | 轉換成 ncnn 格式 |
 | [GhostFaceNet](https://github.com/HamadYA/GhostFaceNets)（`w1.3 s2`） | 人臉特徵（512 維） | MIT | 轉換成 ncnn 格式 |
 | Android NDK r27c | 編譯工具鏈 | Apache 2.0 | Google |
 | AOSP `aidl` 工具與 Face AIDL 介面 | 產生 binder 介面程式碼（`--version 4`） | Apache 2.0 | AOSP android-14 |
 | Samsung `ISehFace` / `ISehSession` AIDL | 與 Samsung 鎖屏溝通 | — | 由 One UI 7 的 `SemFaceService` 反推（非官方，僅供互通） |
 | Magisk | systemless 疊加 `/system_ext` | GPL-3.0 | topjohnwu/Magisk |
 
+> **授權聲明**：完整的第三方授權文字請見 `THIRD_PARTY.txt`。
 > **模型授權提醒**：模型權重的授權為上表所列，但部分人臉模型的**訓練資料集**可能有研究／非商業用途限制。本專案定位為個人、非商業使用，若你要做商用請自行查證。
-> 本專案原始碼的授權：**（請在 repo 中補上你選擇的授權，例如 MIT）**
+> 本專案原始碼的授權：**MIT License**，Copyright (c) 2026 BanLeng（全文見 repo 根目錄的 `LICENSE`）。
 
 ---
 
@@ -150,14 +150,15 @@ ls -la vendor_backup.img.gz
 `ls` 要看到幾百 MB。只有幾 KB 就是失敗了，不要繼續。
 
 ### 步驟 3：安裝
-從 [Releases](../../releases) 下載 `G9250_facehal_share_v0.16.zip`，並確認沒有下載中斷（檔案大小 16938735 bytes）。
+從 [Releases](../../releases) 下載 `facehal_v1.0.zip`，並對照 Release 說明頁上的 SHA256（`sha256sum facehal_v1.0.zip`），確認沒有下載中斷。
 
 ```bash
-unzip G9250_facehal_share_v0.16.zip
-cd G9250_facehal/facehal
+unzip facehal_v1.0.zip
+cd facehal_v1.0
 ./install.sh
 ```
 最後要看到 `INSTALL_OK`。若出現 `MISMATCH`，代表複製出錯，**不要重開機**，貼到 Issue。
+如果你之前裝過檔名含 `g9250` 的測試版，`install.sh` 會自動清掉舊的模組和 vendor 檔，不需要先手動移除。
 
 ### 步驟 4：重開機
 ```bash
@@ -166,7 +167,7 @@ adb reboot
 
 ### 步驟 5：確認服務有啟動
 ```bash
-adb shell "su -c 'pidof android.hardware.biometrics.face-service.g9250'"
+adb shell "su -c 'pidof android.hardware.biometrics.face-service.facehal'"
 ```
 要印出一個數字。
 
@@ -240,7 +241,7 @@ pidof 結果（有/無）：
 以及這兩個輸出：
 
 ```bash
-adb shell "su -c 'ls /data/adb/modules; pidof android.hardware.biometrics.face-service.g9250'"
+adb shell "su -c 'ls /data/adb/modules; pidof android.hardware.biometrics.face-service.facehal'"
 adb logcat -b all -d -v threadtime | grep FaceG9250 | tail -80
 ```
 
@@ -252,20 +253,20 @@ adb logcat -b all -d -v threadtime | grep FaceG9250 | tail -80
 
 | 現象 | 可能原因與處理 |
 |---|---|
-| 設定裡沒有「臉部辨識」或註冊一開始就失敗 | 服務沒起來。檢查 `pidof`，沒有數字就看 log 裡 `addService` 那行；確認 `/vendor/etc/vintf/manifest/face_g9250.xml` 與 `/vendor/etc/init/face_g9250.rc` 存在 |
+| 設定裡沒有「臉部辨識」或註冊一開始就失敗 | 服務沒起來。檢查 `pidof`，沒有數字就看 log 裡 `addService` 那行；確認 `/vendor/etc/vintf/manifest/face_facehal.xml` 與 `/vendor/etc/init/face_facehal.rc` 存在 |
 | 預覽沒畫面 | 前鏡頭被其他程序占用，或相機模組沒修好；先確認系統相機前鏡頭能用 |
 | 註冊時一直說臉不正／方向錯 | 前鏡頭方向和 S6 不同，把 `rot` 試 0～3；log 看 `cam: front id=... sensorOrientation=...` |
 | 解鎖很慢（>3 秒） | 這台 CPU 偵測一張約 340 ms；開相機約 1.1 秒是固有延遲 |
 | 自己的臉常解不開 | 在平常拿手機的距離**重新註冊**；log 看 `auth: sim=`，若常在 0.5～0.6，註冊時的距離和使用時差太多 |
 | 失敗鎖定之後臉不恢復 | 確認 `max_fails` 有設；用圖案／密碼解鎖進系統後約 2～3 秒會自動清除，也可手動清 `fails` |
-| 重開機後服務沒了 | 確認 Magisk 模組 `facehal_g9250` 沒被停用，且 `/vendor` 的兩個檔案還在（有些 ROM 更新會覆蓋 vendor） |
+| 重開機後服務沒了 | 確認 Magisk 模組 `facehal` 沒被停用，且 `/vendor` 的兩個檔案還在（有些 ROM 更新會覆蓋 vendor） |
 
 ---
 
 ## 11. 還原
 
 ```bash
-cd G9250_facehal/facehal
+cd facehal_v1.0
 ./uninstall.sh
 adb reboot
 ```
