@@ -1,5 +1,5 @@
 [README.md](https://github.com/user-attachments/files/35011452/README.md)
-# Exynos7420 One UI 7 Face HAL（Galaxy S6 系列 One UI 7 移植版人臉解鎖）
+# Exynos7420 One UI 7 Face HAL（獵戶座 7420 系列 One UI 7 移植版人臉解鎖）
 
 [English](README.en.md) | [繁體中文](README.md)
 
