@@ -1,4 +1,4 @@
-[README.en.md](https://github.com/user-attachments/files/35010246/README.en.md)
+[README.en.md](https://github.com/user-attachments/files/35011469/README.en.md)
 # Exynos7420 One UI 7 Face HAL
 
 [English](README.en.md) | [繁體中文](README.md)
@@ -12,7 +12,7 @@ It enables face unlock on the lock screen, in app lock, and for wake-to-unlock u
 > - **Back up your vendor partition first** (commands below). Use at your own risk; no warranty of any kind.
 > - This project is not affiliated with Samsung.
 
-Current version: **v0.16** (shared edition: lockout after repeated failures is **off** by default)
+Current version: **v1.0** (shared edition, internal HAL build v0.16: lockout after repeated failures is **off** by default)
 
 ---
 
@@ -23,7 +23,7 @@ Your reports help complete this table. If you tested it, please open an Issue (t
 | Device | SoC | System | Status | Reporter | Notes |
 |---|---|---|---|---|---|
 | Galaxy S6 edge (SM-G9250) | Exynos 7420 | Ported One UI 7 (Eylem ROM, Android 15) | ✅ Works | Author | Dev device. Enrollment, unlock, preview and lockout message all work |
-| Galaxy Note 5 | Exynos 7420 | Same ROM | ✅ Works | Author's friend | Installed successfully with shared edition v0.16 |
+| Galaxy Note 5 | Exynos 7420 | Same ROM | ✅ Works | Author's friend | Installed successfully with shared edition v1.0 |
 | Other Galaxy S6 / S6 edge+ models | Exynos 7420 | Same ROM | ❓ Untested | — | Expected to work, reports welcome |
 | Galaxy S7 / S7 edge / Note 7 FE (Exynos 8890/8895) | Exynos 8xxx | Ported One UI 7 | ❓ Untested | — | Front camera orientation and `VENDOR` partition name may differ |
 | Other third-party One UI 7 ports | — | Android 15 | ❓ Untested | — | Run the compatibility check in section 5 first |
@@ -40,7 +40,7 @@ Legend: ✅ works　⚠️ partially works　❌ does not work　❓ untested
 Settings / Lock screen (Samsung keyguard, SemFaceService)
         │  AIDL (android.hardware.biometrics.face.IFace v4)
         ▼
- face-service.g9250  ←  this project (native C++, runs from /system_ext)
+ face-service.facehal  ←  this project (native C++, runs from /system_ext)
    ├─ Samsung extension layer: ISehFace / ISehSession (the Samsung lock screen uses this path)
    ├─ Front camera: NDK Camera2 + AImageReader (YUV_420_888 640x480)
    ├─ Detection: YuNet (5 facial landmarks)
@@ -57,10 +57,10 @@ The enrollment preview uses the `surfacePreview` field of `enrollWithOptions`, w
 
 | File | Location | Method |
 |---|---|---|
-| HAL executable | `/system_ext/bin/hw/android.hardware.biometrics.face-service.g9250` | Magisk module (systemless overlay) |
+| HAL executable | `/system_ext/bin/hw/android.hardware.biometrics.face-service.facehal` | Magisk module (systemless overlay) |
 | 4 model files | `/system_ext/etc/facehal/` | Same |
-| Service script `face_g9250.rc` | `/vendor/etc/init/` | **Written into vendor (read very early in boot)** |
-| HAL declaration `face_g9250.xml` | `/vendor/etc/vintf/manifest/` | **Written into vendor** |
+| Service script `face_facehal.rc` | `/vendor/etc/init/` | **Written into vendor (read very early in boot)** |
+| HAL declaration `face_facehal.xml` | `/vendor/etc/vintf/manifest/` | **Written into vendor** |
 | Enrolled face features, config | `/data/vendor/face/` | Stays on the phone, never packaged or shared |
 
 Why a Magisk module alone is not enough: the `rc` file and the VINTF manifest are read before Magisk mounts its overlays, so those two small files have to really live in `/vendor`.
@@ -72,15 +72,16 @@ Why a Magisk module alone is not enough: the `rc` file and the VINTF manifest ar
 | Component | Purpose | License | Source |
 |---|---|---|---|
 | [ncnn](https://github.com/Tencent/ncnn) (Tencent) | Neural network inference (statically linked, no OpenMP) | BSD 3-Clause | Built with NDK r27c |
-| [YuNet](https://github.com/ShiqiYu/libfacedetection) (`yunet_2023mar`) | Face detection + 5 landmarks | MIT | Converted to ncnn format |
+| [YuNet](https://github.com/ShiqiYu/libfacedetection) (`yunet_2023mar`) | Face detection + 5 landmarks | MIT (OpenCV Zoo) / BSD 3-Clause (libfacedetection); see the source repo | Converted to ncnn format |
 | [GhostFaceNet](https://github.com/HamadYA/GhostFaceNets) (`w1.3 s2`) | Face embedding (512-d) | MIT | Converted to ncnn format |
 | Android NDK r27c | Toolchain | Apache 2.0 | Google |
 | AOSP `aidl` tool and Face AIDL interfaces | Generates binder code (`--version 4`) | Apache 2.0 | AOSP android-14 |
 | Samsung `ISehFace` / `ISehSession` AIDL | Talks to the Samsung lock screen | — | Reverse-engineered from One UI 7 `SemFaceService` (unofficial, for interoperability only) |
 | Magisk | Systemless overlay on `/system_ext` | GPL-3.0 | topjohnwu/Magisk |
 
+> **License notices**: the full third-party license texts are in `THIRD_PARTY.txt`.
 > **Model license note**: the model weights are under the licenses listed above, but the **training datasets** of some face models may carry research / non-commercial restrictions. This project is intended for personal, non-commercial use. If you plan commercial use, check this yourself.
-> Source code license: **(add the license you choose to this repo, for example MIT)**
+> Source code license: **MIT License**, Copyright (c) 2026 BanLeng (full text in the `LICENSE` file at the repo root).
 
 ---
 
@@ -149,14 +150,15 @@ ls -la vendor_backup.img.gz
 `ls` should show hundreds of MB. If it shows only a few KB, the backup failed. Do not continue.
 
 ### Step 3: Install
-Download `G9250_facehal_share_v0.16.zip` from [Releases](../../releases) and make sure the download is complete (file size 16938735 bytes).
+Download `facehal_v1.0.zip` from [Releases](../../releases) and verify it against the SHA256 on the Release page (`sha256sum facehal_v1.0.zip`) to make sure the download is complete.
 
 ```bash
-unzip G9250_facehal_share_v0.16.zip
-cd G9250_facehal/facehal
+unzip facehal_v1.0.zip
+cd facehal_v1.0
 ./install.sh
 ```
 The last line must be `INSTALL_OK`. If you see `MISMATCH`, a copy failed. **Do not reboot** and report it in an Issue.
+If you installed an earlier test build whose file names contain `g9250`, `install.sh` removes the old module and vendor files automatically. You do not need to remove them by hand.
 
 ### Step 4: Reboot
 ```bash
@@ -165,7 +167,7 @@ adb reboot
 
 ### Step 5: Check that the service is running
 ```bash
-adb shell "su -c 'pidof android.hardware.biometrics.face-service.g9250'"
+adb shell "su -c 'pidof android.hardware.biometrics.face-service.facehal'"
 ```
 It must print a number.
 
@@ -239,7 +241,7 @@ Other observations:
 and these two outputs:
 
 ```bash
-adb shell "su -c 'ls /data/adb/modules; pidof android.hardware.biometrics.face-service.g9250'"
+adb shell "su -c 'ls /data/adb/modules; pidof android.hardware.biometrics.face-service.facehal'"
 adb logcat -b all -d -v threadtime | grep FaceG9250 | tail -80
 ```
 
@@ -251,20 +253,20 @@ Before enrolling for the first time, run `adb logcat -c` to clear the log, then 
 
 | Symptom | Likely cause and fix |
 |---|---|
-| No "Face recognition" in Settings, or enrollment fails right away | The service did not start. Check `pidof`; if there is no number, look at the `addService` line in the log. Confirm `/vendor/etc/vintf/manifest/face_g9250.xml` and `/vendor/etc/init/face_g9250.rc` exist |
+| No "Face recognition" in Settings, or enrollment fails right away | The service did not start. Check `pidof`; if there is no number, look at the `addService` line in the log. Confirm `/vendor/etc/vintf/manifest/face_facehal.xml` and `/vendor/etc/init/face_facehal.rc` exist |
 | No preview | The front camera is held by another process or the camera fix is missing. First confirm the stock camera's front camera works |
 | Enrollment keeps saying the face is not frontal / wrong direction | Your front camera orientation differs from the S6. Try `rot` 0–3 and check `cam: front id=... sensorOrientation=...` in the log |
 | Unlock is slow (>3 s) | Detection takes about 340 ms per frame on this CPU, and opening the camera takes about 1.1 s regardless |
 | Your own face often fails | **Re-enroll** at the distance you normally hold the phone. If `auth: sim=` in the log is often 0.5–0.6, your enrollment distance differs too much from your usage distance |
 | Face does not recover after a lockout | Confirm `max_fails` is set. After you unlock with pattern or password, it clears itself in about 2–3 s. You can also clear `fails` manually |
-| Service gone after reboot | Make sure the Magisk module `facehal_g9250` is not disabled and the two `/vendor` files are still there (some ROM updates overwrite vendor) |
+| Service gone after reboot | Make sure the Magisk module `facehal` is not disabled and the two `/vendor` files are still there (some ROM updates overwrite vendor) |
 
 ---
 
 ## 11. Uninstall
 
 ```bash
-cd G9250_facehal/facehal
+cd facehal_v1.0
 ./uninstall.sh
 adb reboot
 ```
